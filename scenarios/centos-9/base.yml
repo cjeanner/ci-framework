@@ -5,3 +5,7 @@ cifmw_repo_setup_dist_major_version: 9
 cifmw_use_libvirt: true
 cifmw_use_crc: true
 cifmw_rhol_crc_use_installyamls: true
+cifmw_rhol_crc_installyamls: "{{ ansible_user_dir }}/install_yamls"
+cifmw_edpm_deploy_installyamls: "{{ ansible_user_dir }}/install_yamls"
+cifmw_rhol_crc_config:
+  pull-secret-file: "{{ ansible_user_dir }}/pull-secret"
