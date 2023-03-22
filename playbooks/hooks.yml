@@ -1,0 +1,10 @@
+---
+- hosts: "{{ cifmw_target_host | default('localhost') }}"
+  gather_facts: false
+  tasks:
+    - name: Include hook
+      when:
+        - hooks is defined
+        - hooks|length > 0
+      ansible.include_role:
+        name: run_hook

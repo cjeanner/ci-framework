@@ -1,0 +1,18 @@
+- hosts: "{{ cifmw_target_host | default('localhost') }}"
+  gather_facts: false
+  tasks:
+    - name: Generate log file name date
+      register: filename_date
+      ansible.builtin.command:
+        cmd: date +%F-%R
+
+    - name: Copy ansible log to proper location
+      ansible.builtin.copy:
+        src: "{{ ansible_user_dir }}/ansible.log"
+        dest: "{{ cifmw_basedir|default(ansible_user_dir ~ '/ci-framework') }}/logs/ansible.log-{{ filename_date.stdout|trim }}"
+        remote_src: true
+
+    - name: Remove original log from home directory
+      ansible.builtin.file:
+        path: "{{ ansible_user_dir }}/ansible.log"
+        state: absent

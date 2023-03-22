@@ -11,89 +11,58 @@
   roles:
     - name: ci_setup
     - name: repo_setup
-  tasks:
-    - name: Pre-infra hook
-      when:
-        - pre_infra is defined
-      vars:
-        hooks: "{{ pre_infra }}"
-      ansible.builtin.include_role:
-        name: run_hook
+
+- name: Run pre-infra hooks
+  vars:
+    hooks: "{{ pre_infra | default([]) }}"
+  ansible.builtin.import_playbook: playbooks/hooks.yml
 
 - name: Import infra entrypoint playbook
   ansible.builtin.import_playbook: playbooks/infra-entry.yml
 
-- hosts: "{{ cifmw_target_host | default('localhost') }}"
-  gather_facts: false
-  tasks:
-    - name: Post-infra hook
-      when:
-        - post_infra is defined
-      vars:
-        hooks: "{{ post_infra }}"
-      ansible.builtin.include_role:
-        name: run_hook
-    - name: Pre-package build hook
-      when:
-        - pre_package_build is defined
-      vars:
-        hooks: "{{ pre_package_build }}"
-      ansible.builtin.include_role:
-        name: run_hook
+- name: Run post-infra hooks
+  vars:
+    hooks: "{{ post_infra | default([]) }}"
+  ansible.builtin.import_playbook: playbooks/hooks.yml
+
+- name: Run pre-package-build hooks
+  vars:
+    hooks: "{{ pre_package_build | default([]) }}"
+  ansible.builtin.import_playbook: playbooks/hooks.yml
 
 - name: Import package build playbook
   ansible.builtin.import_playbook: playbooks/build-packages.yml
 
-- hosts: "{{ cifmw_target_host | default('localhost') }}"
-  gather_facts: false
-  tasks:
-    - name: Post-package build hook
-      when:
-        - post_package_build is defined
-      vars:
-        hooks: "{{ post_package_build }}"
-      ansible.builtin.include_role:
-        name: run_hook
-    - name: Pre-container build hook
-      when:
-        - pre_container_build is defined
-      vars:
-        hooks: "{{ pre_container_build }}"
-      ansible.builtin.include_role:
-        name: run_hook
+- name: Run post-package-build hooks
+  vars:
+    hooks: "{{ post_package_build | default([]) }}"
+  ansible.builtin.import_playbook: playbooks/hooks.yml
+
+- name: Run pre-container-build hooks
+  vars:
+    hooks: "{{ pre_container_build | default([]) }}"
+  ansible.builtin.import_playbook: playbooks/hooks.yml
 
 - name: Import package build playbook
   ansible.builtin.import_playbook: playbooks/build-containers.yml
 
-- hosts: "{{ cifmw_target_host | default('localhost') }}"
-  gather_facts: false
-  tasks:
-    - name: Post-container build hook
-      when:
-        - post_container_build is defined
-      vars:
-        hooks: "{{ post_container_build }}"
-      ansible.builtin.include_role:
-        name: run_hook
-    - name: Pre-deploy hook
-      when:
-        - pre_deploy is defined
-      vars:
-        hooks: "{{ pre_deploy }}"
-      ansible.builtin.include_role:
-        name: run_hook
+- name: Run post-container-build hooks
+  vars:
+    hooks: "{{ post_container_build | default([]) }}"
+  ansible.builtin.import_playbook: playbooks/hooks.yml
+
+- name: Run pre-deploy hooks
+  vars:
+    hooks: "{{ pre_deploy | default([]) }}"
+  ansible.builtin.import_playbook: playbooks/hooks.yml
 
 - name: Import package build playbook
   ansible.builtin.import_playbook: playbooks/deploy-edpm.yml
 
-- hosts: "{{ cifmw_target_host | default('localhost') }}"
-  gather_facts: false
-  tasks:
-    - name: Post-deploy hook
-      when:
-        - post_deploy is defined
-      vars:
-        hooks: "{{ post_deploy }}"
-      ansible.builtin.include_role:
-        name: run_hook
-    # TODO: consider if we get a "formal" test step, or if hooks are sufficiant
+- name: Run post-deploy hooks
+  vars:
+    hooks: "{{ post_deploy | default([]) }}"
+  ansible.builtin.import_playbook: playbooks/hooks.yml
+
+- name: Gather logs and related data
+  ansible.builtin.import_playbook: playbooks/logging.yml
