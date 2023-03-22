@@ -8,6 +8,8 @@
 
 - hosts: "{{ cifmw_target_host | default('localhost') }}"
   gather_facts: true
+  environment:
+    PATH: "~/.crc/bin:~/.crc/bin/oc:~/ci-framework/bin:{{ ansible_env.PATH }}"
   roles:
     - name: ci_setup
     - name: repo_setup
