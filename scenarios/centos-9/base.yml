@@ -9,3 +9,9 @@ cifmw_rhol_crc_installyamls: "{{ ansible_user_dir }}/install_yamls"
 cifmw_edpm_deploy_installyamls: "{{ ansible_user_dir }}/install_yamls"
 cifmw_rhol_crc_config:
   pull-secret-file: "{{ ansible_user_dir }}/pull-secret"
+
+pre_infra:
+  - name: Download needed tools
+    inventory: "{{ cifmw_rhol_crc_installyamls }}/devsetup/hosts"
+    type: playbook
+    source: "{{ cifmw_rhol_crc_installyamls }}/devsetup/download_tools.yaml"
