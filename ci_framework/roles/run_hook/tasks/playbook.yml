@@ -14,6 +14,8 @@
 # "main" play.
 - name: "Run {{ playbook_path }} playbook"
   register: play_output
+  environment:
+    ANSIBLE_STDOUT_CALLBACK: yaml
   ansible.builtin.command:
     cmd: >-
       ansible-playbook -i {{ hook.inventory | default('localhost,') }}
