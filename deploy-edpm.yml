@@ -6,7 +6,7 @@
 # openstack-k8s-operators/install_yaml repository in order to leverage its
 # own methods.
 
-- hosts: localhost
+- hosts: "{{ cifmw_target_host | default('localhost') }}"
   gather_facts: true
   roles:
     - name: ci_setup
@@ -19,13 +19,13 @@
         hooks: "{{ pre_infra }}"
       ansible.builtin.include_role:
         name: run_hook
-    - name: Prepare CRC
-      when:
-        - cifmw_use_crc is defined
-        - cifmw_use_crc | bool
-      ansible.builtin.include_role:
-        name: rhol_crc
-    # TODO: libvirt
+
+- name: Import infra entrypoint playbook
+  ansible.builtin.import_playbook: playbooks/infra-entry.yml
+
+- hosts: "{{ cifmw_target_host | default('localhost') }}"
+  gather_facts: false
+  tasks:
     - name: Post-infra hook
       when:
         - post_infra is defined
@@ -40,7 +40,13 @@
         hooks: "{{ pre_package_build }}"
       ansible.builtin.include_role:
         name: run_hook
-    # TODO: build packages
+
+- name: Import package build playbook
+  ansible.builtin.import_playbook: playbooks/build-packages.yml
+
+- hosts: "{{ cifmw_target_host | default('localhost') }}"
+  gather_facts: false
+  tasks:
     - name: Post-package build hook
       when:
         - post_package_build is defined
@@ -55,7 +61,13 @@
         hooks: "{{ pre_container_build }}"
       ansible.builtin.include_role:
         name: run_hook
-    # TODO: build containers
+
+- name: Import package build playbook
+  ansible.builtin.import_playbook: playbooks/build-containers.yml
+
+- hosts: "{{ cifmw_target_host | default('localhost') }}"
+  gather_facts: false
+  tasks:
     - name: Post-container build hook
       when:
         - post_container_build is defined
@@ -70,7 +82,13 @@
         hooks: "{{ pre_deploy }}"
       ansible.builtin.include_role:
         name: run_hook
-    # TODO: deploy EDPM
+
+- name: Import package build playbook
+  ansible.builtin.import_playbook: playbooks/deploy-edpm.yml
+
+- hosts: "{{ cifmw_target_host | default('localhost') }}"
+  gather_facts: false
+  tasks:
     - name: Post-deploy hook
       when:
         - post_deploy is defined
