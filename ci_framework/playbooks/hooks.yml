@@ -6,5 +6,5 @@
       when:
         - hooks is defined
         - hooks|length > 0
-      ansible.include_role:
+      ansible.builtin.include_role:
         name: run_hook

@@ -1,0 +1,46 @@
+- hosts: "{{ cifmw_target_host | default('localhost') }}"
+  gather_facts: false
+  tasks:
+    - name: Ensure libvirt is present/configured
+      when:
+        - cifmw_use_libvirt is defined
+        - cifmw_use_libvirt | bool
+      ansible.builtin.include_role:
+        name: libvirt_manager
+    - name: Prepare CRC
+      when:
+        - cifmw_use_crc is defined
+        - cifmw_use_crc | bool
+      ansible.builtin.include_role:
+        name: rhol_crc
+# TODO: vms, build-pkg-container
+    - name: Create compute node
+      when:
+        - cifmw_use_libvirt is defined
+        - cifmw_use_libvirt | bool
+      block:
+        - name: Create compute node
+          ci_make:
+            output_dir: "{{ ansible_user_dir }}/ci-framework/artifacts"
+            chdir: "{{ cifmw_installyamls_repos }}/devsetup"
+            target: edpm_compute
+        - name: Wait for compute to get an IP
+          register: compute_ip
+          environment:
+            VIRSH_DEFAULT_CONNECT_URI: "qemu:///system"
+          ansible.builtin.command:
+            cmd: virsh -q domifaddr edpm-compute-0
+          until: "'ipv4' in compute_ip.stdout"
+          retries: 30
+          delay: 5
+        - name: Wait for SSH connection to be active
+          ansible.builtin.wait_for:
+            host: "{{ compute_ip.stdout.split()[-1].split('/')[0] }}"
+            port: 22
+            delay: 0
+            timeout: 30
+        - name: Configure repositories on compute
+          ci_make:
+            output_dir: "{{ ansible_user_dir }}/ci-framework/artifacts"
+            chdir: "{{ cifmw_installyamls_repos }}/devsetup"
+            target: edpm_compute_repos
