@@ -1,0 +1,129 @@
+---
+- name: Ensure source values.yaml exists
+  block:
+    - name: Get values.yaml state
+      register: _values_stat
+      ansible.builtin.stat:
+        path: >-
+          {{ 
+            (cifmw_ci_gen_kustomize_values_architecure_repo,
+             cifmw_ci_gen_kustomize_values_dt_src_file) | path_join
+          }}
+
+    - name: Ensure file exists
+      ansible.builtin.assert:
+        that:
+          - _values_stat.stat.exists
+        msg: >-
+          {{ cifmw_ci_gen_kustomize_values_dt_src_file }} doesn't exist in
+          {{ cifmw_ci_gen_kustomize_values_architecure_repo }}
+
+- name: Assert we have needed parameters
+  ansible.builtin.assert:
+    that:
+      - cifmw_networking_env_definition is defined
+      - cifmw_ci_gen_kustomize_values_ssh_authorizedkeys is defined
+      - cifmw_ci_gen_kustomize_values_ssh_authorizedkeys != ''
+      - cifmw_ci_gen_kustomize_values_ssh_private_key is defined
+      - cifmw_ci_gen_kustomize_values_ssh_private_key != ''
+      - cifmw_ci_gen_kustomize_values_ssh_public_key is defined
+      - cifmw_ci_gen_kustomize_values_ssh_public_key != ''
+      - cifmw_ci_gen_kustomize_values_migration_priv_key is defined
+      - cifmw_ci_gen_kustomize_values_migration_priv_key != ''
+      - cifmw_ci_gen_kustomize_values_migration_pub_key is defined
+      - cifmw_ci_gen_kustomize_values_migration_pub_key != ''
+
+- name: Load values.yaml file
+  register: _value_content
+  ansible.builtin.slurp:
+    path: >-
+      {{ 
+        (cifmw_ci_gen_kustomize_values_architecure_repo,
+         cifmw_ci_gen_kustomize_values_dt_src_file) | path_join
+      }}
+
+# TODO: generate dict matching:
+#   set actual values for the various CHANGEME (mostly ssh keys and related)
+#   ensure the ansibleUser is correct (probably zuul in CI/reproducer case)
+#   correct service_net_map and update to internalapi
+#   parametrize the timesync_ntp_servers
+#   probably parametrize edpm_tuned_isolated_cores (will check with Compute)
+#   set correct value for neutron_public_interface_name
+#   set correct ranges for edpm_sshd_allowed_ranges (adding both interface
+#     networks and see if that's enough)
+#   empty nodes and re-add just the ones we really have according to the
+#     networking-environment-definition.yml
+#   maybe allow to set custom services
+#   check with Compute about the nova entry
+#   check if the edpm_network_config_template needs any update
+
+- name: Combine original values.yaml, generated and user provided content
+  vars:
+    _parsed: >-
+      {{
+        _value_content.content |
+        b64decode |
+        from_yaml |
+        ansible.utils.remove_keys(target=['nodes'])
+      }}
+    _nodes: >-
+	  {% for node in cifmw_networking_env_definition.instances.keys() %}
+		{{ node }}:
+		  ansible:
+			ansibleHost: {{ cifmw_networking_env_definition.instances[node].networks.ctlplane.ip_v4 }}
+		  hostName: {{ node }}
+		  networks:
+		  - defaultRoute: true
+			fixedIP: {{ cifmw_networking_env_definition.instances[node].networks.ctlplane.ip_v4 }}
+			name: CtlPlane
+			subnetName: subnet1
+		  - name: InternalApi
+			subnetName: subnet1
+		  - name: Storage
+			subnetName: subnet1
+		  - name: Tenant
+			subnetName: subnet1
+	  {% endfor %}
+    _generated:
+      data:
+        ssh_keys:
+          authorized: |
+            {{ cifmw_ci_gen_kustomize_values_ssh_authorizedkeys }}
+          private: |
+            {{ cifmw_ci_gen_kustomize_values_ssh_private_key }}
+          public: |
+            {{ cifmw_ci_gen_kustomize_values_ssh_public_key }}
+        nodeset:
+          ansible:
+            ansibleUser: "zuul"
+            service_net_map:
+              nova_api_network: "internalapi"
+              nova_libvirt_network: "internalapi"
+            timesync_ntp_servers:
+              - hostname: "{{ }}"
+            edpm_tuned_isolated_cores: "{{ }}"
+            neutron_public_interface_name: "{{ }}"
+            edpm_sshd_allowed_ranges:
+              - "{{  }}"
+            edpm_neutron_sriov_agent_SRIOV_NIC_physical_device_mappings: "{{  }}"
+        nova:
+          migration:
+            ssh_keys:
+              private: |
+                {{ cifmw_ci_gen_kustomize_values_migration_priv_key }}
+              public: |
+                {{ cifmw_ci_gen_kustomize_values_migration_pub_key }}
+    _content: >-
+      {{
+        _parsed |
+        combine(_generated, recursive=true) |
+        combine({data: {nodes: (_nodes | from_yaml)}}, recursive=true) |
+        combine(tomize_values_dt_custom, ecursive=true)
+      }}
+  ansible.builtin.copy:
+    dest: >-
+      {{
+        (cifmw_ci_gen_kustomize_values_dest_dir,
+         cifmw_ci_gen_kustomize_values_dt_dest_file) | path_join
+      }}
+    content: "{{ _content | to_nice_yaml }}"

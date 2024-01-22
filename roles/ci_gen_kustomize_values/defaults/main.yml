@@ -42,3 +42,12 @@ cifmw_ci_gen_kustomize_values_header:
     name: network-values
     annotations:
       config.kubernetes.io/local-config: "true"
+
+# Dataplane generator parameters
+cifmw_ci_gen_kustomize_values_architecure_repo: >-
+  {{
+    (ansible_user_dir, 'src/openstack-k8s-operators',
+     'architecture') | path_join
+  }}
+cifmw_ci_gen_kustomize_values_dt_dest_file: 'dataplane-values.yaml'
+cifmw_ci_gen_kustomize_values_dt_custom: {}
