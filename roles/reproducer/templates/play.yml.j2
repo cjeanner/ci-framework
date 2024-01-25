@@ -115,45 +115,6 @@
 {% endraw %}
 {% endif %}
 
-{% raw %}
-- name: Configure NetworkManager on controller-0
-  hosts: localhost
-  gather_facts: false
-  become: true
-  tasks:
-    - name: Instruct NetworkManager to not manage DNS
-      community.general.ini_file:
-        path: "/etc/NetworkManager/NetworkManager.conf"
-        option: dns
-        section: main
-        value: none
-
-    - name: Restart NetworkManager
-      ansible.builtin.service:
-        name: NetworkManager
-        state: restarted
-
-    - name: Inject proper DNS resolver
-      vars:
-        _net: "{{ cifmw_rp_registry_ip }}/24"
-        _crc_resolver: >-
-          {{
-            _net | ansible.utils.ipaddr('host/prefix') |
-            ansible.utils.nthhost(80)
-          }}
-        _pub_resolver: >-
-          {{
-            _net | ansible.utils.ipaddr('host/prefix') |
-            ansible.utils.nthhost(1)
-          }}
-      ansible.builtin.copy:
-        dest: "/etc/resolv.conf"
-        content: |
-          # Managed by ansible/cifmw reproducer role
-          nameserver {{ _crc_resolver }}
-          nameserver {{ _pub_resolver }}
-{% endraw %}
-
 {% for play in zuul_plays %}
 - name: "Reproducer for {{ job_id }}: {{ play }}"
   vars:
